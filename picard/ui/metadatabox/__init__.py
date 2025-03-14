@@ -280,15 +280,18 @@ class MetadataBox(QtWidgets.QTableWidget):
                 value = self.tag_diff.new[tag]
 
             if tag == '~length':
-                value = [format_time(value), ]
+                try:
+                    value = [format_time(value or 0), ]
+                except (TypeError, ValueError) as why:
+                    log.warning(why)
+                    value = ['']
             return value
 
-        # We can't handle copying data from multiple files
-        #if self.tag_diff.objects > 1:
-        #    return
+        #TODO: Support  copying data from multiple files
         
         items = self.selectedItems()
         if len(items) > 1:
+            # We have multiple tags selected, so copy them as a JSON string
             data = {}
             for item in items:
                 key = self.tag_diff.tag_names[item.row()]
@@ -304,6 +307,7 @@ class MetadataBox(QtWidgets.QTableWidget):
             self.tagger.clipboard().setText(json.dumps(data))
             self.clipboard = value
         else:
+            # Just copy the current item as a string
             item = self.currentItem()
             if item:
                 value = get_value_as_string(item)
