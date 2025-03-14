@@ -288,7 +288,7 @@ class MetadataBox(QtWidgets.QTableWidget):
             return value
 
         #TODO: Support  copying data from multiple files
-        
+
         items = self.selectedItems()
         if len(items) > 1:
             # We have multiple tags selected, so copy them as a JSON string
@@ -297,14 +297,17 @@ class MetadataBox(QtWidgets.QTableWidget):
                 key = self.tag_diff.tag_names[item.row()]
                 if key not in data:
                     data[key] = {}
-              
-                fieldnames = { self.COLUMN_TAG : 'tag_name', self.COLUMN_ORIG : 'original_value', self.COLUMN_NEW : 'new_value' }
+
+                fieldnames = {self.COLUMN_TAG: 'tag_name', self.COLUMN_ORIG: 'original_value', self.COLUMN_NEW: 'new_value'}
                 fieldname = fieldnames[item.column()]
 
                 value = get_value_as_string(item)
                 if value and fieldname:
                     data[key] = { fieldname: value } | data[key]
-            self.tagger.clipboard().setText(json.dumps(data))
+            mimedata = QtCore.QMimeData()
+            mimedata.setData("application/json;contents=picard-tags", json.dumps(data).encode('utf-8'))
+            mimedata.setText(json.dumps(data))
+            self.tagger.clipboard().setMimeData(mimedata)
             self.clipboard = value
         else:
             # Just copy the current item as a string
@@ -315,30 +318,29 @@ class MetadataBox(QtWidgets.QTableWidget):
                     self.tagger.clipboard().setText(MULTI_VALUED_JOINER.join(value))
                     self.clipboard = value
 
-
-
     def _paste_value(self):
-        # do we have JSON in the clipboard?
-        # loop over tags in JSON then set self._set_tag_values(tag, value)
-        # loop over all original values then set self._set_tag_values(tag, original value)
-        try:
+        # Do we have JSON data that represents multiple tage values?
+        mimedata = self.tagger.clipboard().mimeData()
+        if mimedata.hasFormat("application/json;contents=picard-tags"):
             fieldnames = { self.COLUMN_TAG : 'tag_name', self.COLUMN_ORIG : 'original_value', self.COLUMN_NEW : 'new_value' }
-            text = self.tagger.clipboard().text()
+            text = mimedata.data("application/json;contents=picard-tags").data().decode('utf-8')
             data = json.loads(text)
             for tag, values in data.items():
                 if self._tag_is_editable(tag):
-                    self._set_tag_values(tag, values['new_value'])
+                    if 'new_value' in values:
+                        self._set_tag_values(tag, values['new_value'])
+                    else:
+                        self._set_tag_values(tag, values['original_value'])
             return
-        except:
-            pass
-         
-        item = self.currentItem()
-        if item:
-            column = item.column()
-            tag = self.tag_diff.tag_names[item.row()]
-            if column == self.COLUMN_NEW and self._tag_is_editable(tag):
-                self._set_tag_values(tag, self.clipboard)
-                self.update()
+        else:
+            # Cliboard contents doesn't contain our JSON, so trat it as text.
+            item = self.currentItem()
+            if item:
+                column = item.column()
+                tag = self.tag_diff.tag_names[item.row()]
+                if column == self.COLUMN_NEW and self._tag_is_editable(tag):
+                    self._set_tag_values(tag, self.clipboard)
+                    self.update()
 
     def _update_clipboard(self):
         clipboard = self.tagger.clipboard().text().split(MULTI_VALUED_JOINER)
