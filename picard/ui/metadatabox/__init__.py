@@ -322,7 +322,6 @@ class MetadataBox(QtWidgets.QTableWidget):
         # Do we have JSON data that represents multiple tage values?
         mimedata = self.tagger.clipboard().mimeData()
         if mimedata.hasFormat("application/json;contents=picard-tags"):
-            fieldnames = { self.COLUMN_TAG : 'tag_name', self.COLUMN_ORIG : 'original_value', self.COLUMN_NEW : 'new_value' }
             text = mimedata.data("application/json;contents=picard-tags").data().decode('utf-8')
             data = json.loads(text)
             for tag, values in data.items():
@@ -441,17 +440,16 @@ class MetadataBox(QtWidgets.QTableWidget):
                     merge_tags_action.triggered.connect(partial(self._apply_update_funcs, mergeorigs))
                     menu.addAction(merge_tags_action)
                     menu.addSeparator()
-                if single_tag:
-                    menu.addSeparator()
-                    copy_action = QtGui.QAction(icontheme.lookup('edit-copy', icontheme.ICON_SIZE_MENU), _("&Copy"), self)
-                    copy_action.triggered.connect(self._copy_value)
-                    copy_action.setShortcut(QtGui.QKeySequence.StandardKey.Copy)
-                    menu.addAction(copy_action)
-                    paste_action = QtGui.QAction(icontheme.lookup('edit-paste', icontheme.ICON_SIZE_MENU), _("&Paste"), self)
-                    paste_action.triggered.connect(self._paste_value)
-                    paste_action.setShortcut(QtGui.QKeySequence.StandardKey.Paste)
-                    paste_action.setEnabled(editable)
-                    menu.addAction(paste_action)
+
+                menu.addSeparator()
+                copy_action = QtGui.QAction(icontheme.lookup('edit-copy', icontheme.ICON_SIZE_MENU), _("&Copy"), self)
+                copy_action.triggered.connect(self._copy_value)
+                copy_action.setShortcut(QtGui.QKeySequence.StandardKey.Copy)
+                menu.addAction(copy_action)
+                paste_action = QtGui.QAction(icontheme.lookup('edit-paste', icontheme.ICON_SIZE_MENU), _("&Paste"), self)
+                paste_action.triggered.connect(self._paste_value)
+                paste_action.setShortcut(QtGui.QKeySequence.StandardKey.Paste)
+                menu.addAction(paste_action)
             if single_tag or removals or useorigs:
                 menu.addSeparator()
             menu.addAction(self.add_tag_action)
